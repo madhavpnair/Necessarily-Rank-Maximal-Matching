@@ -14,3 +14,6 @@
 - WebSockets can be avoided if zero networking
 - [NetworkX](https://networkx.org/documentation/stable/tutorial.html) library support for graphs<br>
 eg : [maximum matching in bipartite graph](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.bipartite.matching.maximum_matching.html)
+    - create and store a graph in session memory
+    - mutate the graph in each iteration 
+    - no need to recreate in each iteration 
