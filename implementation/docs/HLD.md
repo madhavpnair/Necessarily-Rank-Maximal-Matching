@@ -18,3 +18,7 @@ eg : [maximum matching in bipartite graph](https://networkx.org/documentation/st
     - mutate the graph in each iteration 
     - no need to recreate in each iteration 
     - **TODO** : implement Edmond-Gallai Decomposition   
+
+## tentative tech stack
+- FastAPI
+- ReactJS
