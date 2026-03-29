@@ -1,4 +1,5 @@
-import tests.algo_sandbox as al
+import lib.graph_utils as utils
+import lib.edmonds_gallai as edmonds_gallai
 
 def findNRM(n):
 
@@ -9,7 +10,7 @@ def findNRM(n):
     H = [O.copy() for i in range(n+1)]
 
     E = []
-    G = al.construct_bipartite_graph(A, O, E) # initialize graph with no edges, to be updated after each iteration
+    G = utils.construct_bipartite_graph(A, O, E) # initialize graph with no edges, to be updated after each iteration
     F = []
     D = {}
     queryCount = 0
@@ -51,15 +52,15 @@ def findNRM(n):
                     D[a] = (r, h)
  
         # update instead of reconstructing
-        G = al.update_graph(G, Ei)
+        G = utils.update_graph(G, Ei)
         E += Ei # update E with the new edges from this iteration
 
         # Augment M so that it is a maximum matching in (N ∪ O, E)
-        M = al.compute_maximum_matching(G, N)
+        M = utils.compute_maximum_matching(G, N)
 
         # Calculate the Edmond-Gallai Decomposition U, E, O for M
         # even set is unused
-        even, odd, unreachable = al.compute_edmonds_gallai(G, M)
+        even, odd, unreachable = edmonds_gallai.compute_edmonds_gallai(G, M)
 
         # If agent a ∈ N is U or O, remove a from A
         A = [a for a in A if a in even]
