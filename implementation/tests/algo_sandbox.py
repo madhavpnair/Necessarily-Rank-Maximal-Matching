@@ -26,6 +26,7 @@ def compute_maximum_matching(G, N):
 # not needed for now, to update the graph after each iteration
 def update_graph(G, new_edges):
     G.add_edges_from(new_edges)
+    return G
 
 
 def compute_edmonds_gallai(G, M):
@@ -73,6 +74,8 @@ def compute_edmonds_gallai(G, M):
     
     return E, O, U
 
+    
+# driver code to test the functions
 if __name__ == "__main__":
     G = nx.Graph()
     agents = {"a1", "a2", "a3", "a4"}
@@ -85,7 +88,7 @@ if __name__ == "__main__":
         ("a4", "o2")
     ]
     G = construct_bipartite_graph(agents, objects, edges)
-    maximum_matching = compute_maximum_matching(G)
+    maximum_matching = compute_maximum_matching(G, agents)
     E, O, U = compute_edmonds_gallai(G, maximum_matching)
     
     print("Edges are        :", edges)
