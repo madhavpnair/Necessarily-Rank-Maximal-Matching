@@ -18,9 +18,9 @@ def findNRM(n):
 
     # simple case
     if n == 2:
-        h1 = input("Enter a1's first preference: ")
+        h1 = input("Enter a1's first preference: ") # taking string input for object for user convenience like o1,o2 etc
         queryCount += 1
-        return [["a1", f"o{h1}"], ["a2", f"o{3 - h1}"]], queryCount
+        return [["a1", h1], ["a2", f"o{3 - int(h1[1:])}"]], queryCount
     
     for i in range(1, n+1):
         for a in A:
@@ -38,8 +38,9 @@ def findNRM(n):
                     del D[a]
 
             if skip == False:
-                h, r = map(int, input(f"Choose best from {H[int(a[1])]} for {a}: ").split())
-                h = f"o{h}"
+                # taking string input for object for user convenience like o1,o2 etc
+                h, r= input(f"Choose best from {H[int(a[1:])]} for {a}: ").split()
+                r = int(r)
                 queryCount += 1
 
             if h is not None and r is not None:
@@ -79,7 +80,7 @@ def findNRM(n):
 
 n = int(input("Enter no of agent-obj pairs: "))
 if(n!=2):
-    print("input format: <obj_id> <obj_rank>")
+    print("input format: <obj> <obj_rank> eg: o1 1")
 M, queryCount = findNRM(n)
 print("NRM: ", M)
 print(f"{queryCount} queries asked.")
