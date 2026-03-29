@@ -16,14 +16,11 @@ def findNRM(n):
 
     queryCount = 0
 
-    # this is because we cant del current queried obj from H
-    # This is the set passed to the query
-    querySet = [Hi.copy() for Hi in H]
-
     # simple case
     if n == 2:
-        h1 = int(input("Enter a1's preference: "))
-        return [["a1", f"o{h1}"], ["a2", f"o{3 - h1}"]]
+        h1 = input("Enter a1's first preference: ")
+        queryCount += 1
+        return [["a1", f"o{h1}"], ["a2", f"o{3 - h1}"]], queryCount
     
     for i in range(1, n+1):
         for a in A:
@@ -41,9 +38,8 @@ def findNRM(n):
                     del D[a]
 
             if skip == False:
-                h, r = map(int, input(f"Choose best from {querySet[int(a[1])]} for {a}: ").split())
+                h, r = map(int, input(f"Choose best from {H[int(a[1])]} for {a}: ").split())
                 h = f"o{h}"
-                querySet[int(a[1])].remove(h)
                 queryCount += 1
 
             if h is not None and r is not None:
@@ -61,6 +57,7 @@ def findNRM(n):
         M = al.compute_maximum_matching(G, N)
 
         # Calculate the Edmond-Gallai Decomposition U, E, O for M
+        # even set is unused
         even, odd, unreachable = al.compute_edmonds_gallai(G, M)
 
         # If agent a ∈ N is U or O, remove a from A
@@ -70,8 +67,6 @@ def findNRM(n):
         for j in range(0, len(H)):
             Hj = [o for o in H[j] if o not in unreachable and o not in odd]
             H[j] = Hj
-            querySetj = [o for o in querySet[j] if o in H[j]]
-            querySet[j] = querySetj
 
         # Add any OO or OU edges to F and remove them from E
         for a, h in M.items():
@@ -83,7 +78,8 @@ def findNRM(n):
     return M, queryCount
 
 n = int(input("Enter no of agent-obj pairs: "))
-print("input format: <obj_id> <obj_rank>")
+if(n!=2):
+    print("input format: <obj_id> <obj_rank>")
 M, queryCount = findNRM(n)
 print("NRM: ", M)
 print(f"{queryCount} queries asked.")
