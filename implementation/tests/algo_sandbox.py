@@ -1,5 +1,5 @@
 import networkx as nx
-from networkx.algorithms import matching
+from networkx.algorithms import bipartite
 
 def construct_bipartite_graph(agents, objects, edges):
     G = nx.Graph()
@@ -9,18 +9,16 @@ def construct_bipartite_graph(agents, objects, edges):
     return G
 
 
-def compute_maximum_matching(G):
+def compute_maximum_matching(G, N):
 
-    raw_matching = matching.max_weight_matching(G, maxcardinality=True) 
-    
+    raw_matching = bipartite.matching.maximum_matching(G, top_nodes=N) 
+    # print(raw_matching)
     # convert the maximum matching to a dictionary format for easier access
     M = {}
-    for u, v in raw_matching:
-
-        if G.nodes[u].get('bipartite') == 0:
+    for u, v in raw_matching.items():
+        # print(u, v)
+        if u in N:
             M[u] = v
-        elif G.nodes[v].get('bipartite') == 0:
-            M[v] = u
         
     return M
 
