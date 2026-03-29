@@ -1,4 +1,3 @@
-import networkx as nx
 import tests.algo_sandbox as al
 
 def findNRM(n):
@@ -10,10 +9,9 @@ def findNRM(n):
     H = [O.copy() for i in range(n+1)]
 
     E = []
-    M = al.construct_bipartite_graph(A, O, E)
+    G = al.construct_bipartite_graph(A, O, E) # initialize graph with no edges, to be updated after each iteration
     F = []
     D = {}
-
     queryCount = 0
 
     # simple case
@@ -23,6 +21,7 @@ def findNRM(n):
         return [["a1", h1], ["a2", f"o{3 - int(h1[1:])}"]], queryCount
     
     for i in range(1, n+1):
+        Ei = [] # to collect the preference edges for this iteration, to update the graph after each iteration
         for a in A:
             skip = False
             h = None
@@ -45,14 +44,15 @@ def findNRM(n):
 
             if h is not None and r is not None:
                 if (a, h) not in F and r == i and h in H[int(a[1])]:
-                    E.append((a, h))
+                    Ei.append((a, h)) # collect the preference edges for this iteration, to update the graph after each iteration
                     H[int(a[1])].remove(h)
 
                 elif r > i:
                     D[a] = (r, h)
  
-        # actually Gi
-        G = al.construct_bipartite_graph(N, O, E)
+        # update instead of reconstructing
+        G = al.update_graph(G, Ei)
+        E += Ei # update E with the new edges from this iteration
 
         # Augment M so that it is a maximum matching in (N ∪ O, E)
         M = al.compute_maximum_matching(G, N)
@@ -62,11 +62,11 @@ def findNRM(n):
         even, odd, unreachable = al.compute_edmonds_gallai(G, M)
 
         # If agent a ∈ N is U or O, remove a from A
-        A = [a for a in A if a not in odd and a not in unreachable]
+        A = [a for a in A if a in even]
 
         # If object o ∈ O is U or O, remove o from Hi∀i ∈ [n]
         for j in range(0, len(H)):
-            Hj = [o for o in H[j] if o not in unreachable and o not in odd]
+            Hj = [o for o in H[j] if o in even]
             H[j] = Hj
 
         # Add any OO or OU edges to F and remove them from E
@@ -76,6 +76,8 @@ def findNRM(n):
                 if (a, h) in E:
                     E.remove((a, h))
 
+    if len(M) < n:
+        raise Exception("Matching is not perfect. Inconsistent preference list detected !!. \nPlease check the input and try again!.")
     return M, queryCount
 
 n = int(input("Enter no of agent-obj pairs: "))
