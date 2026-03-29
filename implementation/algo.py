@@ -83,6 +83,7 @@ def findNRM(n):
     return M, queryCount
 
 n = int(input("Enter no of agent-obj pairs: "))
+print("input format: <obj_id> <obj_rank>")
 M, queryCount = findNRM(n)
 print("NRM: ", M)
 print(f"{queryCount} queries asked.")
