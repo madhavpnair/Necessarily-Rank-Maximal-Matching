@@ -44,9 +44,9 @@ def findNRM(n):
                 queryCount += 1
 
             if h is not None and r is not None:
-                if (a, h) not in F and r == i and h in H[int(a[1])]:
+                if (a, h) not in F and r == i and h in H[int(a[1:])]:
                     Ei.append((a, h)) # collect the preference edges for this iteration, to update the graph after each iteration
-                    H[int(a[1])].remove(h)
+                    H[int(a[1:])].remove(h)
 
                 elif r > i:
                     D[a] = (r, h)
