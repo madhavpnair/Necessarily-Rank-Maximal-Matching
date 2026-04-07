@@ -1,5 +1,8 @@
 import lib.graph_utils as utils
 import lib.edmonds_gallai as edmonds_gallai
+from logger_config import setup_logger
+
+logger = setup_logger(__name__)
 
 def findNRM(n):
 
@@ -15,7 +18,6 @@ def findNRM(n):
     D = {}
     queryCount = 0
 
-    
     ''' 
     this dictionary will store the rank of the last preference given by each agent
     this helps to catch an agent if she says a rank equal or lesser than the latest revealed rank
@@ -37,11 +39,15 @@ def findNRM(n):
         # taking string input for object for user convenience like o1,o2 etc
         h1 = input("Enter a1's first preference: ") 
         queryCount += 1
-        return [["a1", h1], ["a2", f"o{3 - int(h1[1:])}"]], queryCount
-    
+        return {"a1": h1, "a2": f"o{3 - int(h1[1:])}"}, queryCount
+
     for i in range(1, n+1):
         # to collect the preference edges for this iteration, to update the graph after each iteration
         Ei = [] 
+        if len(A) == 0:
+            logger.info("------------------------------ All agents are now matched. Ending algorithm ----------------------------------")
+            break
+        logger.info(f"--------------------------------------- iteration number : {i} ----------------------------------------------")
 
         for a in A:
             skip = False
@@ -67,31 +73,35 @@ def findNRM(n):
                     # this check will not be required for the full stack version 
                     # since they select strictly from the list of available houses from the drop-down menu provided
                     if h not in H[int(a[1:])]:
-                        print(f"{h} is not available for {a}. Please select from the given list")
+                        logger.warning(f"{h} is not available for {a}. Please select from the given list")
+                        continue
 
                     # catch inconsistent preferences
                     # the rank of the objects chosen by an agent should be strictly increasing
 
                     if a not in l:  # this key a is absent in l only in the first iteration 
                         if r != 1 :
-                            print(f"The first choice should be the first ranked object. Please try again!")
+                            logger.warning(f"The first choice should be the first ranked object. Please try again!")
+                            continue
                         else :
                             l[a] = r
                             queryCount += 1
                         
                     elif r <= l[a]:
-                        print(f"Inconsistent preference detected for agent {a} !!. \nPlease check the input and try again!.")
+                        logger.warning(f"Inconsistent preference detected for agent {a} !!. \nPlease check the input and try again!.")
                         continue
                     
 
                     # catch if the agent says an impossible rank
                     if r > n :
-                        print(f"Only {n} objects are there. How {h} can be your {r}th preference. Please re-check")
+                        logger.warning(f"Only {n} objects are there. How {h} can be your {r}th preference. Please re-check")
+                        continue
 
                     # check if the agent says a greater rank when a better rank is possible - making an illegal jump in her pref list
-                    elif ((r!=1) and (r > l[a] + n_ou )) :
-                        print(f"nou is {n_ou}")
-                        print(f"You have made an illegal jump in your preference list. You have better ranks available.\nPlease check and say the rank of your next favourite object")
+                    elif ( (a in l) and (r > l[a] + n_ou) ) :
+                        logger.debug(f"n_ou is {n_ou} and your latest rank is {l[a]}.")
+                        logger.warning(f"You have made an illegal jump in your preference list. You have better ranks available.\nPlease check and say the rank of your next favourite object")
+                        continue
                     
                     # passed all tests on validity of the input. Query next agent
                     else :
@@ -108,6 +118,7 @@ def findNRM(n):
  
         # update instead of reconstructing
         G = utils.update_graph(G, Ei)
+        logger.debug(f"edges added : {Ei}")
         E += Ei # update E with the new edges from this iteration
 
         # Augment M so that it is a maximum matching in (N ∪ O, E)
@@ -135,12 +146,15 @@ def findNRM(n):
                     E.remove((a, h))
 
     if len(M) < n:
-        raise Exception("Matching is not perfect. Inconsistent preference list detected !!. \nPlease check the input and try again!.")
+        logger.error("Matching is not perfect")
+        raise Exception("Inconsistent preference list detected !!. \nPlease check the input and try again!.")
     return M, queryCount
 
 n = int(input("Enter no of agent-obj pairs: "))
 if(n!=2):
     print("input format: <obj> <obj_rank> eg: o1 1")
 M, queryCount = findNRM(n)
-print("NRM: ", M)
-print(f"{queryCount} queries asked.")
+
+# log the results
+logger.info(f"NRM: {M}")
+logger.info(f"Queries asked: {queryCount}")
