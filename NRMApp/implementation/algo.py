@@ -1,6 +1,6 @@
-import lib.graph_utils as utils
-import lib.edmonds_gallai as edmonds_gallai
-from logger_config import setup_logger
+import NRMApp.implementation.lib.graph_utils as utils
+import NRMApp.implementation.lib.edmonds_gallai as edmonds_gallai
+from NRMApp.implementation.logger_config import setup_logger
 
 logger = setup_logger(__name__)
 
