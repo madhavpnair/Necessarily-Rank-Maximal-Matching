@@ -195,6 +195,4 @@ async def init_algo(websocket: WebSocket):
     finally:
         await websocket.close()
 
-@app.get("/test")
-def test():
-    return {"status": "alive"}
+
