@@ -1,6 +1,6 @@
-import NRMApp.implementation.lib.graph_utils as utils
-import NRMApp.implementation.lib.edmonds_gallai as edmonds_gallai
-from NRMApp.implementation.logger_config import setup_logger
+import lib.graph_utils as utils
+import lib.edmonds_gallai as edmonds_gallai
+from logger_config import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -67,7 +67,7 @@ def findNRM(n):
                 # don't terminate on catching errors in input, ask the user until she gives a vaild input
                 while True:
                     # taking string input for object for user convenience like o1,o2 etc
-                    h, r= input(f"Choose best from {H[int(a[1:])]} for {a}: ").split()
+                    h, r = input(f"Choose best from {H[int(a[1:])]} for {a}: ").split()
                     r = int(r)
 
                     # this check will not be required for the full stack version 
@@ -80,6 +80,7 @@ def findNRM(n):
                     # the rank of the objects chosen by an agent should be strictly increasing
 
                     if a not in l:  # this key a is absent in l only in the first iteration 
+                        
                         if r != 1 :
                             logger.warning(f"The first choice should be the first ranked object. Please try again!")
                             continue
@@ -105,6 +106,10 @@ def findNRM(n):
                     
                     # passed all tests on validity of the input. Query next agent
                     else :
+                        # added update
+                        if r != 1:
+                            l[a] = r
+                            queryCount += 1
                         break
                 
 

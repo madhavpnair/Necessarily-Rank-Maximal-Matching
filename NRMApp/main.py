@@ -112,6 +112,7 @@ async def NRM(websocket: WebSocket, n):
                     elif r <= l[a]:
                         await websocket.send_json({"message": f"Inconsistent preference detected for agent {a} !!. \nPlease check the input and try again!.", "type": "error"})
                         continue
+
                     
 
                     # catch if the agent says an impossible rank
@@ -127,6 +128,10 @@ async def NRM(websocket: WebSocket, n):
                     
                     # passed all tests on validity of the input. Query next agent
                     else :
+                        # added update
+                        if r != 1:
+                            l[a] = r
+                            queryCount += 1
                         break
                 
 
