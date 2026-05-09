@@ -5,11 +5,19 @@ from implementation.lib.graph_utils import construct_bipartite_graph, compute_ma
 from implementation.lib.edmonds_gallai import compute_edmonds_gallai
 from implementation.logger_config import setup_logger
 
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
+
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
 @app.get("/")
-def root():
-    return {"messages": "hello"}
+async def root(request: Request):
+    # Explicitly define request= and name= to avoid the versioning bug
+    return templates.TemplateResponse(
+        request=request, 
+        name="index.html"
+    )
     
 
 logger = setup_logger(__name__)
