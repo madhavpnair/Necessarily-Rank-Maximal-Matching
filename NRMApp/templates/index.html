@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NRM Simulator — Necessarily Rank Maximum Matching</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f6f1e7;
+    --surface: #fbf7ef;
+    --border: #e2d8c4;
+    --text: #1f2233;
+    --muted: #6b6757;
+    --primary: #6b1e1e;
+    --primary-fg: #fbf7ef;
+    --info: #2b5a8a;
+    --success: #3f7a4d;
+    --warning: #a8322a;
+    --error: #a8322a;
+    --even: #3f7a4d;
+    --odd:  #b07a1e;
+    --unreach: #6b6b78;
+    --matched: #6b1e1e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  h1, h2, h3, .serif {
+    font-family: "EB Garamond", Georgia, serif;
+    letter-spacing: -0.005em;
+  }
+  code, .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 18px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { font-size: 1.6rem; }
+  header .sub { font-style: normal; color: var(--muted); font-size: 0.8rem; }
+  .badges { display: flex; gap: 8px; align-items: center; }
+  .badge {
+    font-size: 0.72rem; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+  }
+  .badge.dot::before {
+    content: ""; display: inline-block; width: 7px; height: 7px;
+    border-radius: 50%; background: var(--muted); margin-right: 6px; vertical-align: middle;
+  }
+  .badge.connected { color: var(--success); border-color: #c5dac9; background: #eaf3ec; }
+  .badge.connected.dot::before { background: var(--success); }
+  .badge.error { color: var(--error); border-color: #ecc7c4; background: #fbeeec; }
+  .badge.error.dot::before { background: var(--error); }
+  .badge.warn { color: var(--warning); border-color: #ecdcc0; background: #faf1de; }
+  .badge.warn.dot::before { background: var(--warning); }
+
+  main {
+    max-width: 1380px; margin: 0 auto; padding: 22px 28px;
+    display: grid; gap: 20px;
+    grid-template-columns: 320px 1fr 340px;
+  }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: background-color 0.2s, border-color 0.2s;
+  }
+  .card .head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    transition: border-bottom-color 0.2s;
+  }
+  .card .head h2 { font-size: 1.05rem; }
+  .card .head .desc { font-size: 0.75rem; color: var(--muted); font-style: italic; }
+  .card .body { padding: 16px; }
+
+  /* Final Result Card Enhancements */
+  #result-card {
+    box-shadow: 0 4px 16px rgba(63, 122, 77, 0.15);
+  }
+  #result-card .head h2 { font-size: 1.3rem; }
+  #result-card .head .desc { font-size: 0.85rem; }
+  #result-card table { font-size: 1rem; }
+  #result-card th { font-size: 0.75rem; padding: 12px 14px; }
+  #result-card td { padding: 12px 14px; }
+
+  /* Green background state for the final result card */
+  .card.success-bg {
+    background-color: #eaf3ec;
+    border-color: #c5dac9;
+  }
+  .card.success-bg .head {
+    border-bottom-color: #c5dac9;
+  }
+  .card.success-bg th, .card.success-bg td {
+    border-bottom-color: #c5dac9;
+  }
+
+  label { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+  input, select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+    background: #fff; color: var(--text); border-radius: 5px;
+    font-family: "JetBrains Mono", monospace; font-size: 0.85rem;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--primary); }
+
+  button {
+    border: 1px solid var(--primary); background: var(--primary); color: var(--primary-fg);
+    padding: 8px 14px; border-radius: 5px; cursor: pointer;
+    font-family: "Inter", sans-serif; font-size: 0.82rem; font-weight: 500;
+    transition: opacity .15s, background .15s;
+  }
+  button:hover { opacity: 0.92; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.secondary {
+    background: var(--surface); color: var(--text); border-color: var(--border);
+  }
+  button.outline { background: transparent; color: var(--primary); }
+
+  /* Clickable option buttons for objects */
+  .opt-btn {
+    background: #fff; border: 1px solid var(--border); border-radius: 4px;
+    padding: 6px 12px; font-family: "JetBrains Mono", monospace; font-size: 0.8rem;
+    cursor: pointer; color: var(--text); transition: all 0.15s;
+    flex: 1; text-align: center; min-width: 45px;
+  }
+  .opt-btn:hover { border-color: var(--primary); }
+  .opt-btn.active { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  .stack { display: flex; flex-direction: column; gap: 12px; }
+
+  /* Log */
+  .log { max-height: calc(100vh - 200px); overflow-y: auto; }
+  .log-row {
+    padding: 9px 14px; border-bottom: 1px solid var(--border);
+    font-size: 0.78rem;
+  }
+  .log-row .meta { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
+  .log-row pre { white-space: pre-wrap; word-break: break-word; font-family: "JetBrains Mono", monospace; font-size: 0.75rem; }
+  .log-row.info .meta { color: var(--info); }
+  .log-row.error .meta { color: var(--error); }
+  .log-row.error pre { color: var(--error); }
+  
+  .log-row.warning .meta { color: var(--error); }
+  .log-row.warning pre { color: var(--error); }
+
+  .log-row.query .meta { color: var(--odd); }
+  .log-row.end .meta { color: var(--success); }
+  .log-row.sent .meta { color: var(--odd); }
+  .log-row.system .meta { color: var(--muted); }
+  
+  .log-row.success .meta, .log-row.success pre { color: var(--success); font-weight: 500; }
+  .log-row.skip .meta, .log-row.skip pre { color: var(--success); }
+  .log-row.cache-hit .meta, .log-row.cache-hit pre { color: var(--success); }
+
+  /* Agent menu cards */
+  .agents-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .agent-card {
+    border: 1px solid var(--border); border-radius: 6px; padding: 10px; background: #fff;
+  }
+  .agent-card.current { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(107,30,30,0.08); }
+  .agent-card .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .agent-card .name { font-family: "JetBrains Mono", monospace; font-weight: 600; }
+  .pill { font-size: 0.68rem; padding: 2px 8px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); }
+  .pill.done { background: #eaf3ec; border-color: #c5dac9; color: var(--success); }
+  .pill.choosing { background: #faf1de; border-color: #ecdcc0; color: var(--warning); }
+  .pill.skipped { background: #e9f0f7; border-color: #c4d2e1; color: var(--info); }
+  .opts { display: flex; flex-wrap: wrap; gap: 4px; }
+  .opt {
+    font-family: "JetBrains Mono", monospace; font-size: 0.7rem;
+    padding: 2px 7px; border-radius: 3px; background: var(--bg); color: var(--muted);
+  }
+  .opt.picked { background: var(--primary); color: var(--primary-fg); }
+
+  /* Graph */
+  .graph-wrap { display: flex; justify-content: center; }
+  svg.graph { max-width: 100%; height: auto; }
+  .iter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .iter-tab {
+    font-family: "JetBrains Mono", monospace; font-size: 0.72rem;
+    padding: 3px 9px; border-radius: 4px; background: var(--bg); border: 1px solid var(--border);
+    color: var(--muted); cursor: pointer;
+  }
+  .iter-tab.active { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 0.72rem; color: var(--muted); }
+  .legend span.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin-right: 5px; }
+  .legend .seg { display: inline-block; width: 18px; height: 2px; background: var(--primary); vertical-align: middle; margin-right: 5px; }
+
+  /* Result & Dictionary tables */
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  th { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  td.mono { font-family: "JetBrains Mono", monospace; }
+  td.match { color: var(--primary); font-weight: 600; }
+
+  .empty { padding: 28px 0; text-align: center; color: var(--muted); font-style: italic; font-size: 0.85rem; }
+  .prompt-box { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px; font-size: 0.78rem; color: var(--muted); }
+  
+  /* Connection State Messages */
+  .conn-success { font-size: 0.85rem; color: var(--success); display: flex; align-items: center; gap: 6px; font-weight: 500;}
+  .conn-error { font-size: 0.85rem; color: var(--error); display: flex; align-items: center; gap: 6px; font-weight: 500;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>RASC based NRM Simulator</h1>
+    <div class="sub">Necessarily Rank-Maximal Matching</div>
+    <div class="sub">Query Protocol : Rank Aware Set Compare Model</div>
+  </div>
+  <div class="badges">
+    <span id="iter-badge" class="badge" style="display:none">Iteration —</span>
+    <span id="status-badge" class="badge dot">Disconnected</span>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT COLUMN -->
+  <div class="stack">
+    <div class="card">
+      <div class="head"><h2>Connection</h2></div>
+      <div class="body stack">
+        
+        <!-- Setup Zone -->
+        <div id="setup-zone" class="stack">
+          <div>
+            <label for="ws-url">WebSocket URL</label>
+            <input id="ws-url" value="ws://localhost:8000/ws/nrm" />
+          </div>
+          
+          <!-- Explicit UI Error Message Box -->
+          <div id="conn-error" class="conn-error" style="display:none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            Connection failed. Ensure the server is running.
+          </div>
+
+          <div class="row">
+            <button id="connect-btn">Connect</button>
+          </div>
+        </div>
+
+        <!-- Active Zone -->
+        <div id="active-zone" class="stack" style="display:none">
+          <div class="conn-success">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            WebSocket connection established
+          </div>
+          <div class="row">
+            <button id="restart-btn" class="outline">Restart</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="head"><h2>Input</h2><span class="desc">Respond to prompts</span></div>
+      <div class="body" id="input-zone">
+        <p class="empty">Connect to begin.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER COLUMN -->
+  <div class="stack">
+    
+    <!-- RESULT CARD (Initially Hidden, Replaces Agents & Dict when done) -->
+    <div class="card" id="result-card" style="display:none">
+      <div class="head">
+        <div>
+          <h2>Final Matching Result</h2>
+          <div class="desc" id="qcount"></div>
+          <div class="desc" id="signature" style="color: var(--primary); font-weight: 600; margin-top: 4px;"></div>
+        </div>
+      </div>
+      <div class="body">
+        <table>
+          <thead><tr><th>Agent</th><th>Matched Object</th></tr></thead>
+          <tbody id="result-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AGENTS CARD -->
+    <div class="card" id="agents-card">
+      <div class="head">
+        <div>
+          <h2>Active agents <span id="iter-label" class="desc"></span></h2>
+          <div class="desc">Available objects and chosen preferences</div>
+        </div>
+      </div>
+      <div class="body" id="agents-zone">
+        <p class="empty">No agents queried yet.</p>
+      </div>
+    </div>
+
+    <!-- DICTIONARY CARD -->
+    <div class="card" id="dict-card">
+      <div class="head">
+        <div>
+          <h2>In-Memory Dictionary</h2>
+          <div class="desc">Cached future preferences</div>
+        </div>
+        <span id="dict-count" class="badge">0</span>
+      </div>
+      <div class="body" id="dict-zone">
+        <p class="empty">Dictionary is empty.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="head">
+        <div>
+          <h2>Bipartite graph</h2>
+          <div class="desc">Edmonds–Gallai decomposition · matched edges highlighted</div>
+        </div>
+        <div class="iter-tabs" id="iter-tabs"></div>
+      </div>
+      <div class="body">
+        <div class="graph-wrap" id="graph-wrap">
+          <p class="empty">Graph appears after the first iteration.</p>
+        </div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--even)"></span>even</span>
+          <span><span class="dot" style="background:var(--odd)"></span>odd</span>
+          <span><span class="dot" style="background:var(--unreach)"></span>unreachable</span>
+          <span><span class="seg"></span>matched edge</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div class="card">
+    <div class="head"><h2>Event Stream</h2><span id="log-count" class="badge">0</span></div>
+    <div class="log" id="log"></div>
+  </div>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const wsUrlInput = $("ws-url");
+  const connectBtn = $("connect-btn");
+  const restartBtn = $("restart-btn");
+  const setupZone = $("setup-zone");
+  const activeZone = $("active-zone");
+  const statusBadge = $("status-badge");
+  const iterBadge = $("iter-badge");
+  const iterLabel = $("iter-label");
+  const inputZone = $("input-zone");
+  
+  // UI Error
+  const connError = $("conn-error");
+
+  // Card Wrappers for toggling visibility
+  const agentsCard = $("agents-card");
+  const dictCard = $("dict-card");
+  
+  const agentsZone = $("agents-zone");
+  
+  // Dictionary elements
+  const dictZone = $("dict-zone");
+  const dictCount = $("dict-count");
+
+  const graphWrap = $("graph-wrap");
+  const iterTabs = $("iter-tabs");
+  const logEl = $("log");
+  const logCount = $("log-count");
+  const resultCard = $("result-card");
+  const resultBody = $("result-body");
+  const qcount = $("qcount");
+  const signatureEl = $("signature");
+
+  // persisted url
+  const saved = localStorage.getItem("nrm_ws_url");
+  if (saved) wsUrlInput.value = saved;
+
+  let ws = null;
+  let status = "disconnected";
+  let iteration = 0;
+  let currentN = null; 
+  let iterMenus = []; 
+  let graphHistory = []; 
+  let viewIter = null;
+  let prefPrompt = null; 
+  let textPrompt = null;
+
+  function setStatus(s) {
+    status = s;
+    const map = {
+      disconnected: ["Disconnected", ""],
+      connecting:   ["Connecting…", ""],
+      connected:    ["Connected", "connected"],
+      awaiting_n:   ["Awaiting n", "warn"],
+      awaiting_pref:["Awaiting preference", "warn"],
+      awaiting_text:["Awaiting input", "warn"],
+      done:         ["Done", "connected"],
+      error:        ["Error", "error"],
+    };
+    const [label, cls] = map[s] || [s, ""];
+    statusBadge.className = "badge dot " + cls;
+    statusBadge.textContent = label;
+    
+    if (s === "disconnected" || s === "error") {
+      setupZone.style.display = "flex";
+      activeZone.style.display = "none";
+      connectBtn.disabled = false;
+      connectBtn.textContent = "Connect";
+      // Toggle error message specifically if status is error
+      connError.style.display = (s === "error") ? "flex" : "none";
+    } else if (s === "connecting") {
+      setupZone.style.display = "flex";
+      activeZone.style.display = "none";
+      connectBtn.disabled = true;
+      connectBtn.textContent = "Connecting...";
+      connError.style.display = "none";
+    } else {
+      setupZone.style.display = "none";
+      activeZone.style.display = "flex";
+      connError.style.display = "none";
+    }
+    renderInput();
+  }
+
+  function pushLog(type, text) {
+    const row = document.createElement("div");
+    // Ensure types like "cache hit" translate to safe CSS classes like "cache-hit"
+    const safeType = type.replace(/\s+/g, '-').toLowerCase();
+    row.className = "log-row " + safeType;
+    const time = new Date().toLocaleTimeString();
+    row.innerHTML = `<div class="meta">${type} · ${time}</div><pre></pre>`;
+    row.querySelector("pre").textContent = text;
+    logEl.appendChild(row);
+    logEl.scrollTop = logEl.scrollHeight;
+    logCount.textContent = logEl.children.length;
+  }
+
+  function parsePref(msg) {
+    const m = msg.match(/Choose best from\s*\[(.*?)\]\s*for\s*(\w+)/i);
+    if (!m) return null;
+    const options = [...m[1].matchAll(/['"]([^'"]+)['"]/g)].map(x => x[1]);
+    return { agent: m[2], options };
+  }
+
+  function send(text) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(text);
+    pushLog("sent", text);
+  }
+
+  function connect() {
+    const url = wsUrlInput.value.trim();
+    if (!url) return;
+    localStorage.setItem("nrm_ws_url", url);
+    if (ws) try { ws.close(); } catch {}
+    resetState();
+    setStatus("connecting");
+    try { ws = new WebSocket(url); }
+    catch (e) { pushLog("error", "Failed to open socket: " + e.message); setStatus("error"); return; }
+
+    ws.onopen = () => { setStatus("connected"); pushLog("system", "Connected to " + url); };
+    
+    // Explicitly handle failure mapping to "error"
+    ws.onerror = () => { 
+      pushLog("error", "WebSocket connection failed."); 
+      setStatus("error"); 
+    };
+    
+    // Check if the closing was due to a prior error, so we don't accidentally wipe out the UI state
+    ws.onclose = () => { 
+      pushLog("system", "Connection closed."); 
+      if (status !== "done" && status !== "error") {
+        setStatus("disconnected"); 
+      }
+    };
+    
+    ws.onmessage = (ev) => handleMessage(ev.data);
+  }
+
+  function resetState() {
+    iteration = 0; iterMenus = []; graphHistory = []; viewIter = null;
+    prefPrompt = null; textPrompt = null; currentN = null;
+    logEl.innerHTML = ""; logCount.textContent = 0;
+    
+    // Hide result card, show agents and dict cards
+    resultCard.style.display = "none";
+    resultCard.classList.remove("success-bg");
+    agentsCard.style.display = "";
+    dictCard.style.display = "";
+    
+    iterBadge.style.display = "none";
+    iterLabel.textContent = "";
+    signatureEl.textContent = "";
+    renderAgents(); renderGraph(); renderTabs(); renderDictionary({});
+  }
+
+  function restart() {
+    if (ws) try { ws.close(); } catch {}
+    ws = null;
+    resetState();
+    setStatus("disconnected");
+  }
+
+  function handleMessage(raw) {
+    let payload;
+    try { payload = JSON.parse(raw); }
+    catch { pushLog("system", String(raw)); return; }
+
+    // Intercept Dictionary Updates
+    if (payload.type === "dict_update") {
+      renderDictionary(payload.dictionary);
+      return; 
+    }
+
+    // Intercept iteration start to PRE-FILL agents menu
+    if (payload.type === "iter_start") {
+      iteration = payload.iteration;
+      iterMenus = payload.menus.map(m => ({
+        agent: m.agent,
+        options: m.options,
+        answered: null,
+        skipped: false
+      }));
+      iterBadge.style.display = "";
+      iterBadge.textContent = "Iteration " + iteration;
+      iterLabel.textContent = "— iteration " + iteration;
+      renderAgents();
+      return;
+    }
+
+    // Intercept Dictionary Auto-Processes
+    if (payload.auto_process) {
+      const m = iterMenus.find(x => x.agent === payload.auto_process.agent);
+      if (m) m.answered = { object: payload.auto_process.object, rank: payload.auto_process.rank };
+      renderAgents();
+    }
+
+    // Intercept Dictionary Skips
+    if (payload.skipped_agent) {
+      const m = iterMenus.find(x => x.agent === payload.skipped_agent);
+      if (m) m.skipped = true;
+      renderAgents();
+    }
+
+    // Final Result
+    if (payload && "NRM" in payload) {
+      showResult(payload.NRM, payload["query count"], payload.signature);
+      pushLog("end", "Algorithm terminates. In-Memory Dictionary cleared.");
+      setStatus("done");
+      prefPrompt = null; textPrompt = null;
+      
+      // Clear data behind the scenes just in case
+      iterMenus = [];
+      renderAgents();
+      renderDictionary({});
+      iterBadge.style.display = "none";
+      iterLabel.textContent = "";
+
+      renderInput();
+      return;
+    }
+
+    // Init Info
+    if (payload.type === "init") {
+      pushLog("info", `Initialized with ${payload.agents.length} agents`);
+      return;
+    }
+
+    // Graph Update
+    if (payload.type === "graph_update") {
+      const snap = { iteration: payload.iteration, graph: payload.graph };
+      graphHistory.push(snap); viewIter = snap.iteration;
+      renderTabs(); renderGraph();
+      pushLog("info", `Graph updated for iteration ${snap.iteration}`);
+      return;
+    }
+    
+    // Direct State Update (legacy wrapper)
+    if (payload.edges && payload.matching) {
+      const nodes = [];
+      const seen = new Set();
+      const stateOf = (id) => {
+        if (payload.even && payload.even.includes(id)) return "even";
+        if (payload.odd && payload.odd.includes(id)) return "odd";
+        if (payload.unreachable && payload.unreachable.includes(id)) return "unreachable";
+        return "unassigned";
+      };
+      const addNode = (id) => {
+        if (seen.has(id)) return;
+        seen.add(id);
+        nodes.push({ id, type: id.startsWith("a") ? "agent" : "object", state: stateOf(id) });
+      };
+      ["even","odd","unreachable"].forEach(k => (payload[k]||[]).forEach(addNode));
+      payload.edges.forEach(([s,t]) => { addNode(s); addNode(t); });
+      Object.entries(payload.matching).forEach(([a,o]) => { addNode(a); addNode(o); });
+
+      const matchedSet = new Set(Object.entries(payload.matching).map(([a,o]) => a+"|"+o));
+      const edges = payload.edges.map(([s,t]) => ({
+        source: s, target: t,
+        is_matched: matchedSet.has(s+"|"+t) || matchedSet.has(t+"|"+s)
+      }));
+      const snap = { iteration: iteration || graphHistory.length+1, graph: { nodes, edges } };
+      graphHistory.push(snap); viewIter = snap.iteration;
+      renderTabs(); renderGraph();
+      pushLog("info", `State received for iteration ${snap.iteration}`);
+      return;
+    }
+
+    let type = payload.type || "info";
+    if (type === "question") type = "query";
+
+    const msg = payload.message || "";
+    pushLog(type, msg);
+
+    if (type === "query") {
+      if (/Send n/i.test(msg)) { setStatus("awaiting_n"); return; }
+      
+      const p = parsePref(msg);
+      if (p) {
+        // Find existing agent in iterMenus and just mark them as current via prefPrompt
+        prefPrompt = p;
+        setStatus("awaiting_pref");
+        renderAgents();
+        return;
+      }
+      textPrompt = msg;
+      setStatus("awaiting_text");
+    } else if (type === "end") {
+      setStatus("done");
+    }
+  }
+
+  // ===== Renderers =====
+  
+  function renderDictionary(dict) {
+    const entries = Object.entries(dict);
+    dictCount.textContent = entries.length;
+    
+    if (entries.length === 0) {
+      dictZone.innerHTML = `<p class="empty">Dictionary is empty.</p>`;
+      return;
+    }
+    
+    let html = `<table>
+      <thead><tr><th>Agent</th><th>Target Rank</th><th>Object</th></tr></thead>
+      <tbody>`;
+      
+    for (const [agent, val] of entries) {
+      const rank = val[0];
+      const obj = val[1];
+      html += `<tr>
+        <td class="mono">${agent}</td>
+        <td class="mono">${rank}</td>
+        <td class="mono match">${obj}</td>
+      </tr>`;
+    }
+    
+    html += `</tbody></table>`;
+    dictZone.innerHTML = html;
+  }
+
+  function renderInput() {
+    inputZone.innerHTML = "";
+    
+    if (status === "awaiting_n") {
+      inputZone.innerHTML = `
+        <label>Number of agents (n)</label>
+        <div class="row">
+          <input id="n-input" type="number" min="2" value="4" />
+          <button id="n-send">Send</button>
+        </div>`;
+      $("n-send").onclick = () => {
+        const v = parseInt($("n-input").value, 10);
+        if (!Number.isFinite(v) || v < 2) { pushLog("error","n must be ≥ 2"); return; }
+        currentN = v; // Save the n value
+        send(String(v)); setStatus("connected");
+      };
+      $("n-input").addEventListener("keydown", e => { if (e.key === "Enter") $("n-send").click(); });
+    
+    } else if (status === "awaiting_pref" && prefPrompt) {
+      
+      let selectedObj = null;
+      const optsHtml = prefPrompt.options.map(o => 
+        `<button class="opt-btn" data-obj="${o}">${o}</button>`
+      ).join("");
+
+      // Check if this is the n=2 case
+      const isN2 = (currentN === 2);
+
+      inputZone.innerHTML = `
+        <div class="prompt-box">Choose best for <span class="mono" style="color:var(--primary);font-weight:600">${prefPrompt.agent}</span></div>
+        <div style="height:10px"></div>
+        <div>
+          <label>Available Objects</label>
+          <div id="obj-list" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+            ${optsHtml}
+          </div>
+        </div>
+        ${isN2 ? '' : `
+        <div>
+          <label>Rank</label>
+          <input id="pref-rank" type="number" min="1" placeholder="e.g. 1" />
+        </div>
+        `}
+        <div style="height:12px"></div>
+        <button id="pref-send" style="width:100%">Submit preference</button>
+      `;
+
+      // Handle Object Button Clicks
+      const objBtns = document.querySelectorAll("#obj-list .opt-btn");
+      objBtns.forEach(btn => {
+        btn.onclick = () => {
+          objBtns.forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          selectedObj = btn.dataset.obj;
+        };
+      });
+
+      $("pref-send").onclick = () => {
+        // Default to rank 1 if n=2, otherwise get from input
+        const r = isN2 ? 1 : parseInt($("pref-rank").value, 10);
+        
+        if (!selectedObj) {
+          pushLog("warning", "Please select an object");
+          return;
+        }
+        if (!isN2 && (!Number.isFinite(r) || r < 1)) { 
+          pushLog("warning", "Please enter a rank ≥ 1"); 
+          return; 
+        }
+        
+        send(`${selectedObj} ${r}`);
+        const m = iterMenus.find(m => m.agent === prefPrompt.agent);
+        if (m) m.answered = { object: selectedObj, rank: r };
+        prefPrompt = null;
+        setStatus("connected");
+        renderAgents();
+      };
+      
+      // Only bind the keydown event if the input actually exists
+      if (!isN2) {
+        $("pref-rank").addEventListener("keydown", e => { if (e.key === "Enter") $("pref-send").click(); });
+      }
+    
+    } else if (status === "awaiting_text" && textPrompt) {
+      inputZone.innerHTML = `
+        <div class="prompt-box">${textPrompt}</div>
+        <div style="height:10px"></div>
+        <div class="row"><input id="txt" placeholder="Type your reply…" /><button id="txt-send">Send</button></div>`;
+      $("txt-send").onclick = () => {
+        const v = $("txt").value.trim();
+        if (!v) return;
+        send(v); textPrompt = null; setStatus("connected");
+      };
+      $("txt").addEventListener("keydown", e => { if (e.key === "Enter") $("txt-send").click(); });
+    
+    } else {
+      const msgMap = {
+        disconnected: "Connect to begin a simulation.",
+        error: "Connection error. Ensure the server is running and try again.",
+        done: "Simulation completed. Press Restart to run again.",
+      };
+      inputZone.innerHTML = `<p class="empty">${msgMap[status] || "Waiting for the next prompt…"}</p>`;
+    }
+  }
+
+  function renderAgents() {
+    if (iterMenus.length === 0) {
+      agentsZone.innerHTML = `<p class="empty">No agents active this iteration.</p>`;
+      return;
+    }
+    agentsZone.innerHTML = `<div class="agents-grid">${
+      iterMenus.map(m => {
+        const isCurrent = prefPrompt && prefPrompt.agent === m.agent && !m.answered;
+        
+        const pill = m.answered
+          ? `<span class="pill done">${m.answered.object} · r${m.answered.rank}</span>`
+          : m.skipped
+            ? `<span class="pill skipped">skipped</span>`
+            : isCurrent
+              ? `<span class="pill choosing">choosing…</span>`
+              : `<span class="pill">waiting</span>`;
+              
+        const opts = m.options.map(o => {
+          const cls = (m.answered && m.answered.object === o) ? "opt picked" : "opt";
+          return `<span class="${cls}">${o}</span>`;
+        }).join("");
+        
+        return `<div class="agent-card ${isCurrent ? "current" : ""}">
+          <div class="top"><span class="name">${m.agent}</span>${pill}</div>
+          <div class="opts">${opts}</div>
+        </div>`;
+      }).join("")
+    }</div>`;
+  }
+
+  function renderTabs() {
+    if (graphHistory.length === 0) { iterTabs.innerHTML = ""; return; }
+    const active = viewIter ?? graphHistory[graphHistory.length-1].iteration;
+    iterTabs.innerHTML = graphHistory.map(g =>
+      `<button class="iter-tab ${g.iteration===active?"active":""}" data-i="${g.iteration}">i${g.iteration}</button>`
+    ).join("");
+    iterTabs.querySelectorAll(".iter-tab").forEach(b => {
+      b.onclick = () => { viewIter = parseInt(b.dataset.i,10); renderTabs(); renderGraph(); };
+    });
+  }
+
+  function renderGraph() {
+    if (graphHistory.length === 0) {
+      graphWrap.innerHTML = `<p class="empty">Graph appears after the first iteration.</p>`;
+      return;
+    }
+    const snap = graphHistory.find(g => g.iteration === viewIter) || graphHistory[graphHistory.length-1];
+    const g = snap.graph;
+    const agents = g.nodes.filter(n => n.type === "agent").sort((a,b)=>a.id.localeCompare(b.id, undefined, {numeric:true}));
+    const objects = g.nodes.filter(n => n.type === "object").sort((a,b)=>a.id.localeCompare(b.id, undefined, {numeric:true}));
+    
+    // --- INCREASED GRAPH SCALING ---
+    const W = 540; 
+    const H = Math.max(260, Math.max(agents.length, objects.length) * 44 + 40);
+    const xA = 80, xO = W - 80;
+    // -------------------------------
+    
+    const pos = new Map();
+    agents.forEach((a,i) => pos.set(a.id, { x: xA, y: ((i+1)/(agents.length+1))*H }));
+    objects.forEach((o,i) => pos.set(o.id, { x: xO, y: ((i+1)/(objects.length+1))*H }));
+
+    const colorOf = s => s==="even" ? "#3f7a4d" : s==="odd" ? "#b07a1e" : s==="unreachable" ? "#6b6b78" : "#9a9385";
+
+    const edgesSvg = g.edges.map(e => {
+      const a = pos.get(e.source), b = pos.get(e.target);
+      if (!a || !b) return "";
+      return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
+        stroke="${e.is_matched ? '#6b1e1e' : '#cdbfa5'}"
+        stroke-width="${e.is_matched ? 2.8 : 1.2}" />`;
+    }).join("");
+
+    const nodesSvg = g.nodes.map(n => {
+      const p = pos.get(n.id); if (!p) return "";
+      return `<g>
+        <circle cx="${p.x}" cy="${p.y}" r="16" fill="${colorOf(n.state)}" stroke="#fbf7ef" stroke-width="1.5"/>
+        <text x="${p.x}" y="${p.y+4}" text-anchor="middle" font-size="11"
+          font-family="JetBrains Mono, monospace" fill="white" font-weight="600">${n.id}</text>
+      </g>`;
+    }).join("");
+
+    // Use width="100%" to make the SVG fill the available card area smoothly
+    graphWrap.innerHTML = `
+      <svg class="graph" viewBox="0 0 ${W} ${H}" width="100%">
+        <text x="${xA}" y="20" text-anchor="middle" font-size="12" font-style="italic"
+          font-family="EB Garamond, serif" fill="#6b6757">agents</text>
+        <text x="${xO}" y="20" text-anchor="middle" font-size="12" font-style="italic"
+          font-family="EB Garamond, serif" fill="#6b6757">objects</text>
+        ${edgesSvg}
+        ${nodesSvg}
+      </svg>`;
+  }
+
+  function showResult(matching, queryCount, signature) {
+    // Hide agents and dict cards entirely, allowing result card to take their place
+    agentsCard.style.display = "none";
+    dictCard.style.display = "none";
+    
+    // Show the result card
+    resultCard.style.display = "";
+    resultCard.classList.add("success-bg");
+    qcount.textContent = "Query count: " + queryCount;
+    
+    if (signature && signature.length > 0) {
+      signatureEl.textContent = "Signature: (" + signature.join(", ") + ")";
+    } else {
+      signatureEl.textContent = "";
+    }
+    
+    resultBody.innerHTML = Object.entries(matching).map(([a,o]) =>
+      `<tr><td class="mono">${a}</td><td class="mono match">${o}</td></tr>`
+    ).join("");
+  }
+
+  connectBtn.onclick = connect;
+  restartBtn.onclick = restart;
+
+  setStatus("disconnected");
+})();
+</script>
+</body>
+</html>
