@@ -94,8 +94,12 @@ async def NRM(websocket: WebSocket, n):
             if skip == False:
                 # don't terminate on catching errors in input, ask the user until she gives a vaild input
                 while True:
+
+                    print(f"nou: {n_ou}")
+                    # print(f"l[a]: {l[a]}")
+                    # print(f"range: {list(range(l[a] + 1, min(l[a] + n_ou + 1,n))) if a in l else [1]}")
                     # taking string input for object for user convenience like o1,o2 etc
-                    valid_ranks = list(range(l[a] + 1, min(l[a] + n_ou + 1,n))) if a in l else [1]
+                    valid_ranks = list(range(l[a] + 1, min(l[a] + n_ou + 1,n+1))) if a in l else [1]
                     await websocket.send_json({
                         "message": f"Choose best from {H[int(a[1:])]} for {a}: ", 
                         "type": "question",
@@ -209,6 +213,8 @@ async def NRM(websocket: WebSocket, n):
 
         # Calculate the Edmond-Gallai Decomposition U, E, O for M
         even, odd, unreachable = compute_edmonds_gallai(G, M)
+        print(f"odd: {odd}")
+        print(f"unr: {unreachable}")
 
         for a in (odd.union(unreachable)).intersection(A):
            D.pop(a, None)
@@ -230,6 +236,7 @@ async def NRM(websocket: WebSocket, n):
 
         # total number of inactive objects, don't count inactive agents here!!
         n_ou = len(odd.union(unreachable)) - (n - len(A))
+
 
         # If object o ∈ O is U or O, remove o from Hi∀i ∈ [n]
         for j in range(0, len(H)):
