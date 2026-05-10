@@ -23,7 +23,7 @@ async def root(request: Request):
 logger = setup_logger(__name__)
 
 async def NRM(websocket: WebSocket, n):
-    
+    # print("started")
     N = list(f"a{i}" for i in range(1, n+1))
     A = N.copy()
 
@@ -61,6 +61,7 @@ async def NRM(websocket: WebSocket, n):
 
     for i in range(1, n+1):
         # to collect the preference edges for this iteration, to update the graph after each iteration
+        
         Ei = [] 
         if len(A) == 0:
             await websocket.send_json({"message": "All agents are matched. Obtained NRM.", "type": "success"})
@@ -94,7 +95,12 @@ async def NRM(websocket: WebSocket, n):
                 # don't terminate on catching errors in input, ask the user until she gives a vaild input
                 while True:
                     # taking string input for object for user convenience like o1,o2 etc
-                    await websocket.send_json({"message": f"Choose best from {H[int(a[1:])]} for {a}: ", "type": "question"})
+                    valid_ranks = list(range(l[a] + 1, min(l[a] + n_ou + 1,n))) if a in l else [1]
+                    await websocket.send_json({
+                        "message": f"Choose best from {H[int(a[1:])]} for {a}: ", 
+                        "type": "question",
+                        "valid_ranks": valid_ranks
+                    })
                     text = await websocket.receive_text()
                     try:
                         h, r = text.split()
@@ -134,7 +140,7 @@ async def NRM(websocket: WebSocket, n):
                         return {"a1": h, "a2": f"o{3 - int(h[1:])}"}, 2, sig
 
                     
-                    # error handlings starts here
+                    # error handlings start here
                     # ---------------------------------------
 
                     # this check can be removed
@@ -169,7 +175,7 @@ async def NRM(websocket: WebSocket, n):
                     # check if the agent says a greater rank when a better rank is possible - making an illegal jump in her pref list
                     elif ( (a in l) and (r > l[a] + n_ou) ) :
                         await websocket.send_json({"message": f"n_ou is {n_ou} and your latest rank is {l[a]}.", "type": "info"})
-                        await websocket.send_json({"message": f"You have made an illegal jump in your preference list. You have better ranks available.\nPlease check and say the rank of your next favourite object", "type": 'warning'})
+                        await websocket.send_json({"message": f"You have made an illegal jump in your preference list. You have better ranks available.\nValid ranks are {list(range(l[a] + 1, min(l[a] + n_ou + 1, n)))}", "type": 'warning'})
                         continue
                     
                     # passed all tests on validity of the input. Query next agent
@@ -204,6 +210,9 @@ async def NRM(websocket: WebSocket, n):
         # Calculate the Edmond-Gallai Decomposition U, E, O for M
         even, odd, unreachable = compute_edmonds_gallai(G, M)
 
+        for a in (odd.union(unreachable)).intersection(A):
+           D.pop(a, None)
+
         
         # Emit the intermediate graph state to the frontend
         graph_payload = serialize_graph_state(G, M, even, odd, unreachable)
@@ -214,11 +223,13 @@ async def NRM(websocket: WebSocket, n):
             "message": f"Graph updated for iteration {i}"
         })
 
-        # total number of inactive objects and agents
-        n_ou = len(odd.union(unreachable))
+        
 
         # If agent a ∈ N is U or O, remove a from A
         A = [a for a in A if a in even]
+
+        # total number of inactive objects, don't count inactive agents here!!
+        n_ou = len(odd.union(unreachable)) - (n - len(A))
 
         # If object o ∈ O is U or O, remove o from Hi∀i ∈ [n]
         for j in range(0, len(H)):

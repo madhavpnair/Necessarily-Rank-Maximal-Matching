@@ -450,11 +450,12 @@
     logCount.textContent = logEl.children.length;
   }
 
-  function parsePref(msg) {
+  function parsePref(payload) {
+    const msg = payload.message || "";
     const m = msg.match(/Choose best from\s*\[(.*?)\]\s*for\s*(\w+)/i);
     if (!m) return null;
     const options = [...m[1].matchAll(/['"]([^'"]+)['"]/g)].map(x => x[1]);
-    return { agent: m[2], options };
+    return { agent: m[2], options, validRanks: payload.valid_ranks };
   }
 
   function send(text) {
@@ -630,7 +631,7 @@
     if (type === "query") {
       if (/Send n/i.test(msg)) { setStatus("awaiting_n"); return; }
       
-      const p = parsePref(msg);
+      const p = parsePref(payload);
       if (p) {
         // Find existing agent in iterMenus and just mark them as current via prefPrompt
         prefPrompt = p;
@@ -715,6 +716,9 @@
         <div>
           <label>Rank</label>
           <input id="pref-rank" type="number" min="1" placeholder="e.g. 1" />
+          ${prefPrompt.validRanks && prefPrompt.validRanks.length > 0 
+            ? `<div style="font-size: 0.72rem; color: var(--odd); margin-top: 6px; font-weight: 500;">Valid ranks: ${prefPrompt.validRanks.join(", ")}</div>` 
+            : ''}
         </div>
         `}
         <div style="height:12px"></div>
