@@ -95,7 +95,7 @@ async def NRM(websocket: WebSocket, n):
                 # don't terminate on catching errors in input, ask the user until she gives a vaild input
                 while True:
 
-                    print(f"nou: {n_ou}")
+                    # print(f"nou: {n_ou}")
                     # print(f"l[a]: {l[a]}")
                     # print(f"range: {list(range(l[a] + 1, min(l[a] + n_ou + 1,n))) if a in l else [1]}")
                     # taking string input for object for user convenience like o1,o2 etc
@@ -213,8 +213,8 @@ async def NRM(websocket: WebSocket, n):
 
         # Calculate the Edmond-Gallai Decomposition U, E, O for M
         even, odd, unreachable = compute_edmonds_gallai(G, M)
-        print(f"odd: {odd}")
-        print(f"unr: {unreachable}")
+        # print(f"odd: {odd}")
+        # print(f"unr: {unreachable}")
 
         for a in (odd.union(unreachable)).intersection(A):
            D.pop(a, None)
